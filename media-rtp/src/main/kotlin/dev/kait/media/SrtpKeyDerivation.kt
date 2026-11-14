@@ -18,6 +18,16 @@ object SrtpKeyDerivation {
         )
     }
 
+    /** RFC 3711 SRTCP uses independent derivation labels 3, 4 and 5. */
+    fun deriveRtcp(masterKey: ByteArray, masterSalt: ByteArray): SessionKeys {
+        require(masterKey.size == 16 && masterSalt.size == 14)
+        return SessionKeys(
+            deriveLabel(masterKey, masterSalt, 3, 16),
+            deriveLabel(masterKey, masterSalt, 4, 20),
+            deriveLabel(masterKey, masterSalt, 5, 14),
+        )
+    }
+
     private fun deriveLabel(key: ByteArray, salt: ByteArray, label: Int, size: Int): ByteArray {
         val iv = ByteArray(16)
         salt.copyInto(iv)
