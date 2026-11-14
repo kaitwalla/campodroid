@@ -14,6 +14,7 @@ import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
@@ -128,6 +129,17 @@ class CameraEngine(private val context: Context, private val onMotion: (Boolean)
                     keyframe = info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME != 0)
                 if (sample != null) onAccessUnit(sample)
             } finally { codec.releaseOutputBuffer(index, false) }
+        }
+    }
+
+    /** Prompt an IDR frame when a HomeKit viewer joins, rather than waiting for the GOP interval. */
+    fun requestKeyframe() {
+        handler.post {
+            if (!stopping) runCatching {
+                encoder?.setParameters(Bundle().apply {
+                    putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
+                })
+            }.onFailure { Log.w(TAG, "Encoder rejected sync-frame request", it) }
         }
     }
 
