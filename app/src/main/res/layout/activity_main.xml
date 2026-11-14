@@ -10,6 +10,9 @@
         android:layout_marginTop="24dp" android:text="Start camera" />
     <Button android:id="@+id/stop" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="Stop camera" />
+    <CheckBox android:id="@+id/experimental_camera" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="12dp"
+        android:text="Experimental Apple Home live video (restart camera to apply)" />
     <TextView android:id="@+id/pairing_status" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="24dp" android:text="Loading pairing status…" android:textStyle="bold" />
     <TextView android:id="@+id/pairing_code" android:layout_width="match_parent" android:layout_height="wrap_content"
