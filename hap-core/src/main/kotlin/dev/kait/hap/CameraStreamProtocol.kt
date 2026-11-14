@@ -96,7 +96,8 @@ object CameraStreamProtocol {
             one(6, u32(videoSsrc)), one(7, u32(audioSsrc))))
     }
 
-    data class SelectedStream(val sessionId: ByteArray, val command: Command) {
+    data class SelectedStream(val sessionId: ByteArray, val command: Command,
+                              val videoPayloadType: Int = 99) {
         enum class Command { END, START, RECONFIGURE }
     }
 
@@ -113,6 +114,18 @@ object CameraStreamProtocol {
             2 -> SelectedStream.Command.RECONFIGURE
             else -> throw IllegalArgumentException("Unsupported stream command")
         }
-        return SelectedStream(id.copyOf(), value)
+        val selectedVideo = root[2]?.let(::unique)
+        val selectedRtp = selectedVideo?.get(4)?.let(::unique)
+        val payload = selectedRtp?.get(1)?.also { require(it.size == 1) }
+            ?.get(0)?.toInt()?.and(255) ?: 99
+        require(payload in 96..127) { "Expected a dynamic video RTP payload type" }
+        val attrs = selectedVideo?.get(3)?.let(::unique)
+        if (value == SelectedStream.Command.START && attrs != null) {
+            require(attrs[1]?.let(::read16) == 1280 && attrs[2]?.let(::read16) == 720 &&
+                attrs[3]?.contentEquals(byteArrayOf(15)) == true) {
+                "Requested video format differs from 1280x720@15 capture"
+            }
+        }
+        return SelectedStream(id.copyOf(), value, payload)
     }
 }
