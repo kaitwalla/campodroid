@@ -32,6 +32,17 @@ class CameraStreamProtocolTest {
         assertEquals(50600, parsed.videoPort)
         assertEquals(50602, parsed.audioPort)
         assertContentEquals(id, parsed.sessionId)
+        val response = Tlv8.decode(CameraStreamProtocol.setupResponse(parsed, "192.168.1.5",
+            55000, 55002, 0x12345678, 0x12345679)).toMap()
+        assertContentEquals(id, response.getValue(1))
+        assertContentEquals(byteArrayOf(0), response.getValue(2))
+        val responseAddress = Tlv8.decode(response.getValue(3)).toMap()
+        assertContentEquals("192.168.1.5".toByteArray(), responseAddress.getValue(2))
+        assertContentEquals(le16(55000), responseAddress.getValue(3))
+        val responseCrypto = Tlv8.decode(response.getValue(4)).toMap()
+        assertContentEquals(parsed.video.key, responseCrypto.getValue(2))
+        assertContentEquals(parsed.video.salt, responseCrypto.getValue(3))
+        assertContentEquals(byteArrayOf(0x78, 0x56, 0x34, 0x12), response.getValue(6))
         assertFailsWith<IllegalArgumentException> {
             CameraStreamProtocol.parseSetupEndpoints(fields(1 to id, 3 to address,
                 4 to fields(1 to byteArrayOf(0), 2 to ByteArray(16), 3 to ByteArray(13))))
