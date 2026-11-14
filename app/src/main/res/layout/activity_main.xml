@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Pocket Home Cam" android:textSize="26sp" android:textStyle="bold" />
+    <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="16dp" android:text="Camera stopped" android:textSize="16sp" />
+    <Button android:id="@+id/start" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="24dp" android:text="Start camera" />
+    <Button android:id="@+id/stop" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Stop camera" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Developer preview: local hardware capture and motion analysis only. HomeKit pairing and Secure Video are not implemented yet." />
+</LinearLayout>
