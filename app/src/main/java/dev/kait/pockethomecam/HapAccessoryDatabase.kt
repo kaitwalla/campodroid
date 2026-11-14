@@ -1,7 +1,9 @@
 package dev.kait.pockethomecam
 
+import dev.kait.hap.CameraStreamProtocol
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Base64
 
 /** Small, deliberately static HAP database until a camera service is implemented. */
 internal object HapAccessoryDatabase {
@@ -10,7 +12,8 @@ internal object HapAccessoryDatabase {
         .put("type", type).put("iid", iid).put("format", format)
         .put("perms", JSONArray(perms)).apply { if (value != null) put("value", value) }
 
-    fun accessories(deviceId: String, motion: Boolean): ByteArray {
+    fun accessories(deviceId: String, motion: Boolean, experimentalCamera: Boolean = false,
+                    streamInUse: Boolean = false): ByteArray {
         val info = JSONObject().put("iid", 1).put("type", "3E")
             .put("characteristics", JSONArray()
                 .put(characteristic("23", 2, "string", listOf("pr"), "CamPodroid"))
@@ -22,8 +25,21 @@ internal object HapAccessoryDatabase {
         val sensor = JSONObject().put("iid", 7).put("type", "85")
             .put("characteristics", JSONArray().put(
                 characteristic("22", 8, "bool", listOf("pr", "ev"), motion)))
+        val services = JSONArray().put(info).put(sensor)
+        if (experimentalCamera) {
+            fun b64(bytes: ByteArray) = Base64.getEncoder().encodeToString(bytes)
+            services.put(JSONObject().put("iid", 20).put("type", "110")
+                .put("characteristics", JSONArray()
+                    .put(characteristic("114", 21, "tlv8", listOf("pr"), b64(CameraStreamProtocol.supportedVideo())))
+                    .put(characteristic("115", 22, "tlv8", listOf("pr"), b64(CameraStreamProtocol.supportedAudio())))
+                    .put(characteristic("116", 23, "tlv8", listOf("pr"), b64(CameraStreamProtocol.supportedRtp())))
+                    .put(characteristic("118", 24, "tlv8", listOf("pr", "pw", "wr"), ""))
+                    .put(characteristic("117", 25, "tlv8", listOf("pr", "pw", "wr"), ""))
+                    .put(characteristic("120", 26, "tlv8", listOf("pr", "ev"),
+                        b64(CameraStreamProtocol.streamingStatus(streamInUse))))))
+        }
         return JSONObject().put("accessories", JSONArray().put(JSONObject().put("aid", 1)
-            .put("services", JSONArray().put(info).put(sensor))))
+            .put("services", services)))
             .toString().toByteArray(Charsets.UTF_8)
     }
 
