@@ -13,6 +13,7 @@ Implemented:
 - Concurrent low-resolution YUV frame analysis with sampled grayscale frame-difference motion and hysteresis.
 - Bounded, memory-only encoded frame ring buffer for future recording prebuffer.
 - Pure Kotlin HAP TLV8 codec with JVM unit tests.
+- HomeKit setup-code/QR-URI primitives and pairing attempt throttle, with JVM unit tests. These are **not** exposed in the app until authenticated HAP pairing works.
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:
