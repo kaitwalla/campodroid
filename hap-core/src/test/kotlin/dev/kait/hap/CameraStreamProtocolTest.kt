@@ -65,6 +65,16 @@ class CameraStreamProtocolTest {
         val selected = CameraStreamProtocol.parseSelectedStream(
             fields(1 to fields(1 to id, 2 to byteArrayOf(1))))
         assertEquals(CameraStreamProtocol.SelectedStream.Command.START, selected.command)
+        val format = fields(1 to le16(1280), 2 to le16(720), 3 to byteArrayOf(15))
+        val video = fields(3 to format, 4 to fields(1 to byteArrayOf(107)))
+        val negotiated = CameraStreamProtocol.parseSelectedStream(
+            fields(1 to fields(1 to id, 2 to byteArrayOf(1)), 2 to video))
+        assertEquals(107, negotiated.videoPayloadType)
+        assertFailsWith<IllegalArgumentException> {
+            CameraStreamProtocol.parseSelectedStream(fields(
+                1 to fields(1 to id, 2 to byteArrayOf(1)),
+                2 to fields(3 to fields(1 to le16(640), 2 to le16(480), 3 to byteArrayOf(15)))))
+        }
         assertFailsWith<IllegalArgumentException> {
             CameraStreamProtocol.parseSelectedStream(fields(1 to fields(1 to id, 2 to byteArrayOf(9))))
         }

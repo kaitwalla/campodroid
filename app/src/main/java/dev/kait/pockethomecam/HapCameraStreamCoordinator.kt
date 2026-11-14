@@ -55,7 +55,8 @@ internal class HapCameraStreamCoordinator : Closeable {
         if (!prepared.request.sessionId.contentEquals(selected.sessionId)) return false
         return try {
             val derived = SrtpKeyDerivation.derive(prepared.request.video.key, prepared.request.video.salt)
-            val session = SrtpVideoSession(prepared.videoSsrc, derived)
+            val session = SrtpVideoSession(prepared.videoSsrc, derived,
+                payloadType = selected.videoPayloadType)
             val started = SrtpUdpVideoSender(prepared.request.address,
                 prepared.request.videoPort, session, socket = prepared.videoSocket)
             if (!state.command(selected)) { started.close(); return false }
