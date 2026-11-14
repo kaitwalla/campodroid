@@ -26,7 +26,9 @@ class CameraService : Service() {
         try {
             val cameraEnabled = getSharedPreferences("camera", MODE_PRIVATE)
                 .getBoolean("experimental_homekit_video", false)
-            val server = HapLanServer(this, HapIdentityRepository(this), experimentalCamera = cameraEnabled)
+            val server = HapLanServer(this, HapIdentityRepository(this),
+                experimentalCamera = cameraEnabled,
+                onCameraStreamStarted = { cameraEngine?.requestKeyframe() })
             hapServer = server
             cameraEngine = CameraEngine(this,
                 onMotion = { motion ->
