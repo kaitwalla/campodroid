@@ -34,6 +34,17 @@ object CameraStreamProtocol {
     /** AES_CM_128_HMAC_SHA1_80 (crypto suite 0). */
     fun supportedRtp(): ByteArray = Tlv8.encode(listOf(one(2, byteArrayOf(0))))
 
+    /** AAC-ELD, mono, 16kHz; declaration only until an audio sender exists. */
+    fun supportedAudio(): ByteArray {
+        val parameters = Tlv8.encode(listOf(one(1, byteArrayOf(1)),
+            one(2, byteArrayOf(0)), one(3, byteArrayOf(1)), one(4, byteArrayOf(0))))
+        val codec = Tlv8.encode(listOf(one(1, byteArrayOf(2)), one(2, parameters)))
+        return Tlv8.encode(listOf(one(1, codec), one(2, byteArrayOf(0))))
+    }
+
+    fun streamingStatus(inUse: Boolean): ByteArray =
+        Tlv8.encode(listOf(one(1, byteArrayOf(if (inUse) 1 else 0))))
+
     data class Crypto(val key: ByteArray, val salt: ByteArray)
     data class EndpointRequest(val sessionId: ByteArray, val address: String,
                                val videoPort: Int, val audioPort: Int, val video: Crypto)

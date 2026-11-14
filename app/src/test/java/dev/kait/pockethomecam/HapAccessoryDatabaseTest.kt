@@ -5,6 +5,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HapAccessoryDatabaseTest {
+    @Test fun cameraServiceIsOptInAndExposesExpectedCharacteristicMetadata() {
+        fun services(enabled: Boolean) = JSONObject(String(HapAccessoryDatabase.accessories("id", false,
+            experimentalCamera = enabled))).getJSONArray("accessories").getJSONObject(0).getJSONArray("services")
+        assertEquals(2, services(false).length())
+        val enabled = services(true)
+        assertEquals(3, enabled.length())
+        val camera = enabled.getJSONObject(2)
+        assertEquals("110", camera.getString("type"))
+        val chars = camera.getJSONArray("characteristics")
+        assertEquals(listOf("114", "115", "116", "118", "117", "120"),
+            (0 until chars.length()).map { chars.getJSONObject(it).getString("type") })
+        assertEquals("tlv8", chars.getJSONObject(0).getString("format"))
+        assertEquals("pw", chars.getJSONObject(3).getJSONArray("perms").getString(1))
+        assertTrue(java.util.Base64.getDecoder().decode(chars.getJSONObject(0).getString("value")).isNotEmpty())
+    }
+
     @Test fun publishesValidReadOnlyMotionAndWriteOnlyIdentifyMetadata() {
         val document = JSONObject(String(HapAccessoryDatabase.accessories("01:02:03:04:05:06", true)))
         val services = document.getJSONArray("accessories").getJSONObject(0).getJSONArray("services")
