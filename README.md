@@ -15,6 +15,7 @@ Implemented:
 - Pure Kotlin HAP TLV8 codec with JVM unit tests.
 - HomeKit setup-code/QR-URI primitives and pairing attempt throttle, with JVM unit tests. These are **not** exposed in the app until authenticated HAP pairing works.
 - Pure Kotlin SRP-6a server handshake (3072-bit group, SHA-512), with an independent client-side round-trip test. Still not exposed to the network.
+- HAP pair-setup M1/M3/M5 protocol state machine, SRP proof validation, encrypted identity exchange primitives, Ed25519 signature checks, and failure tests. **Not networked or device-tested.**
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:
@@ -32,7 +33,7 @@ Install on a physical Android device, grant camera (and notification) permission
 ## Development priorities
 
 1. Test actual S24 capture output combination and handle unsupported FPS/capture configurations.
-2. Wire SRP into HAP TLV M1–M6 pair setup with authenticated controller identity, then implement pair verify, ChaCha20-Poly1305 encrypted framing, mDNS and persistent identity.
+2. Complete pair-setup integration tests through M6, then implement HAP pair verify, encrypted session framing, mDNS and persistent identity on Android.
 3. Expose a simple HomeKit motion sensor; then add camera stream negotiation and SRTP.
 4. Implement HKSV recording/HDS/fMP4 and prebuffer validation.
 5. Add TFLite inference, camera zones, settings UI, audio, recovery tests and thermal safeguards.
