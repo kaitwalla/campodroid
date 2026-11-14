@@ -20,7 +20,7 @@ class HapCameraStreamCoordinatorTest {
             val crypto = tlv(1 to byteArrayOf(0), 2 to ByteArray(16), 3 to ByteArray(14))
             HapCameraStreamCoordinator().use { coordinator ->
                 assertFalse(coordinator.onVideo(H264AccessUnit(0, true, listOf(byteArrayOf(0x65, 1)))))
-                val reply = coordinator.setup(tlv(1 to id, 3 to address, 4 to crypto), "127.0.0.1")
+                val reply = coordinator.setup(tlv(1 to id, 3 to address, 4 to crypto, 5 to crypto), "127.0.0.1")
                 assertTrue(Tlv8.decode(reply).toMap().containsKey(6))
                 val wrong = tlv(1 to tlv(1 to ByteArray(16), 2 to byteArrayOf(1)))
                 assertFalse(coordinator.select(wrong))
