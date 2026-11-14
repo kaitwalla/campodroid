@@ -19,7 +19,7 @@ internal object HapCameraCharacteristics {
         Write(iid, Base64.getDecoder().decode(item.getString("value")))
     }.getOrNull()
 
-    fun read(path: String, setupResponse: ByteArray?, streaming: Boolean): ByteArray? {
+    fun read(path: String, setupResponse: ByteArray?, streaming: Boolean, motion: Boolean = false): ByteArray? {
         if (!path.startsWith("/characteristics?")) return null
         val id = path.substringAfter('?').split('&').firstOrNull { it.startsWith("id=") }
             ?.substringAfter('=') ?: return null
@@ -27,9 +27,13 @@ internal object HapCameraCharacteristics {
             if (!it.startsWith("1.")) return null
             it.substringAfter('.').toIntOrNull() ?: return null
         }
-        if (iids.isEmpty() || iids.size != iids.distinct().size || iids.any { it !in 21..26 }) return null
+        if (iids.isEmpty() || iids.size != iids.distinct().size || iids.any { it != 8 && it !in 21..26 }) return null
         val response = JSONArray()
         for (iid in iids) {
+            if (iid == 8) {
+                response.put(JSONObject().put("aid", 1).put("iid", 8).put("value", motion))
+                continue
+            }
             val bytes = when (iid) {
                 21 -> CameraStreamProtocol.supportedVideo()
                 22 -> CameraStreamProtocol.supportedAudio()
