@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.TextView
 
 class MainActivity : Activity() {
@@ -22,6 +23,12 @@ class MainActivity : Activity() {
         pairingStatus = findViewById(R.id.pairing_status)
         pairingCode = findViewById(R.id.pairing_code)
         pairingInstructions = findViewById(R.id.pairing_instructions)
+        val experimental = findViewById<CheckBox>(R.id.experimental_camera)
+        val settings = getSharedPreferences("camera", MODE_PRIVATE)
+        experimental.isChecked = settings.getBoolean("experimental_homekit_video", false)
+        experimental.setOnCheckedChangeListener { _, enabled ->
+            settings.edit().putBoolean("experimental_homekit_video", enabled).apply()
+        }
         findViewById<Button>(R.id.start).setOnClickListener { startIfAllowed() }
         findViewById<Button>(R.id.stop).setOnClickListener {
             stopService(Intent(this, CameraService::class.java))
