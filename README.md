@@ -47,6 +47,8 @@ Install on a physical Android device, grant camera (and notification) permission
 
 Design document: [`DESIGN.md`](DESIGN.md).
 
+Galaxy S24 validation steps and expected failures: [`DEVICE_TESTING.md`](DEVICE_TESTING.md).
+
 Pylo reference: https://github.com/tfausak/Pylo (0BSD), reviewed at commit `0e2ae33e1a370c0971d9a2a7c6d023633f71a5a1`.
 
 No Pylo code has been copied into this repository; the implementation is informed by its architecture and public protocol behavior.
