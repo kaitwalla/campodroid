@@ -16,7 +16,8 @@ import kotlin.concurrent.thread
 /** Minimal local HAP transport. No camera stream is advertised until implemented. */
 internal class HapLanServer(private val context: Context, private val identity: HapIdentityRepository,
                    private val motionEvents: MotionEventHub = MotionEventHub(),
-                   private val experimentalCamera: Boolean = false) {
+                   private val experimentalCamera: Boolean = false,
+                   private val onCameraStreamStarted: () -> Unit = {}) {
     private val cameraStreams = HapCameraStreamCoordinator()
     private var socket: ServerSocket? = null
     private val nsd = context.getSystemService(NsdManager::class.java)
@@ -169,7 +170,9 @@ internal class HapLanServer(private val context: Context, private val identity: 
                                             when (cameraWrite.iid) {
                                                 24 -> { cameraStreams.setup(cameraWrite.payload,
                                                     conn.localAddress.hostAddress ?: "127.0.0.1"); true }
-                                                25 -> cameraStreams.select(cameraWrite.payload)
+                                                25 -> cameraStreams.select(cameraWrite.payload).also {
+                                                    if (it && cameraStreams.streaming) onCameraStreamStarted()
+                                                }
                                                 else -> false
                                             }
                                         }.getOrDefault(false)
