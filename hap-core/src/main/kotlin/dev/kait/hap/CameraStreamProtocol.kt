@@ -61,6 +61,22 @@ object CameraStreamProtocol {
             Crypto(key.copyOf(), salt.copyOf()))
     }
 
+    /** Construct the accessory Setup Endpoints reply after reserving UDP ports. */
+    fun setupResponse(request: EndpointRequest, localAddress: String,
+                      videoPort: Int, audioPort: Int, videoSsrc: Int, audioSsrc: Int): ByteArray {
+        require(localAddress.matches(Regex("[0-9]{1,3}(\\.[0-9]{1,3}){3}")))
+        require(localAddress.split('.').all { it.toInt() in 0..255 })
+        require(videoPort in 1..65535 && audioPort in 1..65535)
+        val address = Tlv8.encode(listOf(one(1, byteArrayOf(0)),
+            one(2, localAddress.toByteArray(Charsets.US_ASCII)),
+            one(3, u16(videoPort)), one(4, u16(audioPort))))
+        val crypto = Tlv8.encode(listOf(one(1, byteArrayOf(0)),
+            one(2, request.video.key), one(3, request.video.salt)))
+        fun u32(value: Int) = ByteArray(4) { i -> (value ushr (i * 8)).toByte() }
+        return Tlv8.encode(listOf(one(1, request.sessionId), one(2, byteArrayOf(0)),
+            one(3, address), one(4, crypto), one(6, u32(videoSsrc)), one(7, u32(audioSsrc))))
+    }
+
     data class SelectedStream(val sessionId: ByteArray, val command: Command) {
         enum class Command { END, START, RECONFIGURE }
     }
