@@ -13,7 +13,8 @@ import java.security.SecureRandom
 /** Experimental per-phone stream resources; HAP controller authorization is enforced by caller. */
 internal class HapCameraStreamCoordinator : Closeable {
     private data class Pending(val request: CameraStreamProtocol.EndpointRequest,
-                               val videoSocket: DatagramSocket, val audioSocket: DatagramSocket,
+                               val videoSocket: DatagramSocket, val videoRtcpSocket: DatagramSocket,
+                               val audioSocket: DatagramSocket,
                                val videoSsrc: Int)
     private val state = CameraStreamLifecycle()
     private val random = SecureRandom()
@@ -25,20 +26,22 @@ internal class HapCameraStreamCoordinator : Closeable {
 
     @Synchronized fun setup(request: ByteArray, localAddress: String): ByteArray {
         val parsed = CameraStreamProtocol.parseSetupEndpoints(request)
-        val video = DatagramSocket(0)
-        val audio = try { DatagramSocket(0) } catch (e: Exception) { video.close(); throw e }
+        val (video, rtcp) = reserveVideoPair()
+        val audio = try { DatagramSocket(0) } catch (e: Exception) {
+            video.close(); rtcp.close(); throw e
+        }
         val ssrc = random.nextInt()
         val audioSsrc = random.nextInt()
         return try {
             val response = CameraStreamProtocol.setupResponse(parsed, localAddress,
                 video.localPort, audio.localPort, ssrc, audioSsrc)
             clear()
-            pending = Pending(parsed, video, audio, ssrc)
+            pending = Pending(parsed, video, rtcp, audio, ssrc)
             state.prepare(parsed.sessionId)
             setupReply = response.copyOf()
             response
         } catch (e: Exception) {
-            video.close(); audio.close(); throw e
+            video.close(); rtcp.close(); audio.close(); throw e
         }
     }
 
@@ -58,7 +61,11 @@ internal class HapCameraStreamCoordinator : Closeable {
             val session = SrtpVideoSession(prepared.videoSsrc, derived,
                 payloadType = selected.videoPayloadType)
             val started = SrtpUdpVideoSender(prepared.request.address,
-                prepared.request.videoPort, session, socket = prepared.videoSocket)
+                prepared.request.videoPort, session, socket = prepared.videoSocket,
+                rtcpSocket = prepared.videoRtcpSocket,
+                rtcpProtector = dev.kait.media.SrtcpOutboundProtector(prepared.videoSsrc,
+                    SrtpKeyDerivation.deriveRtcp(prepared.request.video.key, prepared.request.video.salt)),
+                ssrc = prepared.videoSsrc)
             if (!state.command(selected)) { started.close(); return false }
             sender = started
             true
@@ -71,10 +78,26 @@ internal class HapCameraStreamCoordinator : Closeable {
         sender?.close(); sender = null
         setupReply = null
         pending?.videoSocket?.close()
+        pending?.videoRtcpSocket?.close()
         pending?.audioSocket?.close()
         pending = null
         state.clear()
     }
 
     @Synchronized override fun close() = clear()
+
+    private fun reserveVideoPair(): Pair<DatagramSocket, DatagramSocket> {
+        repeat(64) {
+            val video = DatagramSocket(0)
+            if (video.localPort == 65535) { video.close(); return@repeat }
+            try {
+                return video to DatagramSocket(video.localPort + 1)
+            } catch (_: java.net.BindException) {
+                video.close()
+            } catch (e: Exception) {
+                video.close(); throw e
+            }
+        }
+        throw IllegalStateException("Unable to reserve adjacent RTP/RTCP UDP sockets")
+    }
 }
