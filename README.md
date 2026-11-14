@@ -17,25 +17,26 @@ Implemented:
 - Pure Kotlin SRP-6a server handshake (3072-bit group, SHA-512), with an independent client-side round-trip test. Still not exposed to the network.
 - HAP pair-setup M1/M3/M5 protocol state machine, SRP proof validation, encrypted identity exchange primitives, Ed25519 signature checks, and failure tests. **Not networked or device-tested.**
 - HAP pair verification using ephemeral X25519 and authenticated Ed25519 controller signatures; directional session keys and authenticated HAP frame transport, tested with fragmented TCP delivery.
-- Experimental Android Keystore-backed identity/controller store and LAN `_hap._tcp` listener. Only a placeholder motion-sensor accessory is advertised; camera characteristics and HKSV streaming are absent. This has **not** been exercised with Apple Home.
+- Experimental Android Keystore-backed identity/controller store and LAN `_hap._tcp` listener. The default accessory is a motion sensor; an opt-in camera service is now available for interoperability experiments. Neither path has been exercised with Apple Home.
 - Motion-analysis transitions are wired to HAP MotionDetected (`aid=1`, `iid=8`) with authenticated `PUT /characteristics` event subscriptions. This notification path is unit-tested but not Apple Home interoperability-tested.
 - HAP accessory metadata now declares formats and the Identify characteristic, and authenticated `GET /characteristics?id=1.8` reports current motion state. Unsupported ID requests are rejected; full multi-characteristic HAP query handling is still pending.
-- Separate pure Kotlin `:media-rtp` module parses AVC Annex B/AVCC NAL units and packetizes H.264 with RFC 6184 single-NAL/FU-A RTP framing. This is tested independently; the app does **not** serve RTP/SRTP video yet.
+- Separate pure Kotlin `:media-rtp` module parses AVC Annex B/AVCC NAL units and packetizes H.264 with RFC 6184 single-NAL/FU-A RTP framing; its live encrypted UDP path is opt-in and unverified on hardware.
 - H.264 sample assembly caches SPS/PPS from encoder config buffers and includes them when constructing keyframe access units, with JVM tests for late-joining viewers and encoder reset. The live capture callback and SRTP sender are not connected yet.
-- MediaCodec output now passes through the sample assembler on the encoder thread and exposes an access-unit callback (currently logging keyframes for hardware diagnosis). No RTP packets are sent over the network.
-- SRTP AES-CM 128-bit session key derivation (zero derivation rate) is implemented in `:media-rtp` and tested against RFC 3711 Appendix B.3 known-answer vectors. This **is not** an SRTP sender; packet encryption, authentication, rollover, RTCP and replay handling remain unimplemented.
-- Experimental outbound `AES_CM_128_HMAC_SHA1_80` SRTP protection now encrypts/authenticates strictly ordered basic RTP packets, with RFC 3711 AES-CM vector and sequence-rollover tests. It intentionally rejects extension/CSRC formats, gaps and replay; it has no HAP negotiation, network transport or SRTCP yet.
-- A JVM-only `SrtpVideoSession` links H.264 access units through RTP packetization and SRTP protection, with MTU and framing tests. It emits protected in-memory packets only; the app still does not negotiate or send a live stream.
-- Pure Kotlin HomeKit camera TLV8 capabilities and guarded Setup Endpoints / Selected Stream parsing now exist in `:hap-core`, with codec-resolution and malformed-input tests. The camera service is deliberately **not advertised** until UDP media transport and session lifecycle are implemented.
-- Bounded, asynchronous UDP transmission of encrypted SRTP packets exists as an isolated `:media-rtp` component with a loopback datagram test. It is **not yet wired into the Android HAP server**; no camera network streaming is enabled until authenticated endpoint setup, lifecycle and RTCP are integrated.
-- HomeKit Setup Endpoints response serialization now carries the negotiated session ID, video crypto, accessory IPv4 ports and SSRCs, with nested TLV8 round-trip tests. The response is not served until a stream lifecycle manager is in place.
+- MediaCodec output passes through the sample assembler and forwards access units to the experimental encrypted UDP sender when a session has started.
+- SRTP AES-CM 128-bit session key derivation (zero derivation rate) is tested against RFC 3711 Appendix B.3; outbound encryption/authentication and rollover exist, while RTCP and receive-side replay handling remain absent.
+- Experimental outbound `AES_CM_128_HMAC_SHA1_80` SRTP protection encrypts/authenticates strictly ordered packets with RFC tests. It rejects extension/CSRC formats and lacks SRTCP.
+- `SrtpVideoSession` links H.264 access units through RTP packetization and SRTP protection with MTU and framing tests and is now used by the experimental UDP sender.
+- Pure Kotlin HomeKit camera TLV8 capabilities and guarded Setup Endpoints / Selected Stream parsing exist in `:hap-core`, with codec-resolution and malformed-input tests. The camera service is advertised only in explicitly enabled experimental mode.
+- Bounded asynchronous UDP transmission of encrypted SRTP packets is connected to authenticated HAP stream setup in the optional experimental camera path, with loopback datagram coverage; RTCP remains absent.
+- HomeKit Setup Endpoints response serialization carries session ID, video crypto, accessory IPv4 ports and SSRCs with TLV8 tests, and is served from experimental camera characteristics.
 - A single-camera stream lifecycle state machine gates START/END to the current 16-byte session ID, rejects reconfigure and stale session commands, and is covered by JVM transition tests. Transport cleanup remains the Android integration's responsibility.
-- Experimental `HapCameraStreamCoordinator` allocates per-session UDP sockets, validates stream IDs, derives SRTP keys and starts/stops the bounded video sender; JVM loopback tests exercise the complete setup/start/video/stop path. The live app does not expose camera characteristics or invoke this coordinator yet.
+- `HapCameraStreamCoordinator` allocates per-session UDP sockets, validates stream IDs, derives SRTP keys and starts/stops the bounded video sender; JVM loopback tests exercise setup/start/video/stop.
+- Opt-in experimental camera mode exposes Camera RTP Stream Management characteristics and routes authenticated Setup Endpoints / Selected Stream writes into the coordinator, forwarding live encoded H.264 access units to encrypted SRTP UDP transport. It is disabled by default and **has not been tested with Apple Home hardware**; audio capability is a declaration only, and RTCP/SRTCP, snapshot and HKSV remain unsupported.
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:
 
-- **No video is transmitted or viewable** yet (encoded frames currently only enter a ring buffer).
+- The experimental mode may transmit encrypted video when HomeKit completes setup/start negotiation, but **no Apple Home live-view success has been demonstrated**.
 - HAP pairing/discovery now has an experimental Android integration. Apple Home compatibility is unverified; no SRTP, Apple Home camera live view, audio, object classification or HomeKit Secure Video.
 - No automatic camera restart after reboot; Android 15 restricts launching camera foreground services from `BOOT_COMPLETED`.
 
