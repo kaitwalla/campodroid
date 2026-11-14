@@ -27,6 +27,7 @@ Implemented:
 - Experimental outbound `AES_CM_128_HMAC_SHA1_80` SRTP protection now encrypts/authenticates strictly ordered basic RTP packets, with RFC 3711 AES-CM vector and sequence-rollover tests. It intentionally rejects extension/CSRC formats, gaps and replay; it has no HAP negotiation, network transport or SRTCP yet.
 - A JVM-only `SrtpVideoSession` links H.264 access units through RTP packetization and SRTP protection, with MTU and framing tests. It emits protected in-memory packets only; the app still does not negotiate or send a live stream.
 - Pure Kotlin HomeKit camera TLV8 capabilities and guarded Setup Endpoints / Selected Stream parsing now exist in `:hap-core`, with codec-resolution and malformed-input tests. The camera service is deliberately **not advertised** until UDP media transport and session lifecycle are implemented.
+- Bounded, asynchronous UDP transmission of encrypted SRTP packets exists as an isolated `:media-rtp` component with a loopback datagram test. It is **not yet wired into the Android HAP server**; no camera network streaming is enabled until authenticated endpoint setup, lifecycle and RTCP are integrated.
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:
