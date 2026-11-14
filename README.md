@@ -21,6 +21,7 @@ Implemented:
 - Motion-analysis transitions are wired to HAP MotionDetected (`aid=1`, `iid=8`) with authenticated `PUT /characteristics` event subscriptions. This notification path is unit-tested but not Apple Home interoperability-tested.
 - HAP accessory metadata now declares formats and the Identify characteristic, and authenticated `GET /characteristics?id=1.8` reports current motion state. Unsupported ID requests are rejected; full multi-characteristic HAP query handling is still pending.
 - Separate pure Kotlin `:media-rtp` module parses AVC Annex B/AVCC NAL units and packetizes H.264 with RFC 6184 single-NAL/FU-A RTP framing. This is tested independently; the app does **not** serve RTP/SRTP video yet.
+- H.264 sample assembly caches SPS/PPS from encoder config buffers and includes them when constructing keyframe access units, with JVM tests for late-joining viewers and encoder reset. The live capture callback and SRTP sender are not connected yet.
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:
