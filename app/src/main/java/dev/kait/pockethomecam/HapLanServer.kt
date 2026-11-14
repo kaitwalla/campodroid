@@ -16,12 +16,15 @@ import java.security.MessageDigest
 import kotlin.concurrent.thread
 
 /** Minimal local HAP transport. No camera stream is advertised until implemented. */
-class HapLanServer(private val context: Context, private val identity: HapIdentityRepository) {
+internal class HapLanServer(private val context: Context, private val identity: HapIdentityRepository,
+                   private val motionEvents: MotionEventHub = MotionEventHub()) {
     private var socket: ServerSocket? = null
     private val nsd = context.getSystemService(NsdManager::class.java)
     private var registration: NsdManager.RegistrationListener? = null
     @Volatile private var running = false
     private val pairingThrottle = dev.kait.hap.PairingThrottle()
+
+    fun motionChanged(active: Boolean) = motionEvents.update(active)
 
     fun start() {
         check(!running)
@@ -113,6 +116,8 @@ class HapLanServer(private val context: Context, private val identity: HapIdenti
                 pairingThrottle)
             val verify = PairVerifyExchange(identity.signingIdentity(), identity::findController)
             var cipher: HapFrameCipher? = null
+            val writeLock = Any()
+            var motionSubscription: AutoCloseable? = null
             var pending = ByteArray(0)
             val input = conn.getInputStream()
             val output = conn.getOutputStream()
@@ -136,13 +141,32 @@ class HapLanServer(private val context: Context, private val identity: HapIdenti
                                     response(200, verify.handle(request.body), "application/pairing+tlv8")
                                 authenticated && request.method == "GET" && request.path == "/accessories" ->
                                     response(200, accessories(), "application/hap+json")
+                                authenticated && request.method == "PUT" && request.path == "/characteristics" -> {
+                                    val enabled = HapMotionProtocol.subscriptionValue(request.body)
+                                    if (enabled == null) response(400, byteArrayOf(), "application/hap+json")
+                                    else {
+                                        motionSubscription?.close()
+                                        motionSubscription = if (enabled) motionEvents.subscribe { active ->
+                                            val currentCipher = cipher ?: return@subscribe
+                                            try {
+                                                synchronized(writeLock) {
+                                                    output.write(currentCipher.encode(HapMotionProtocol.eventMessage(active)))
+                                                    output.flush()
+                                                }
+                                            } catch (_: Exception) { /* Connection cleanup follows on next I/O. */ }
+                                        } else null
+                                        response(204, byteArrayOf(), "application/hap+json")
+                                    }
+                                }
                                 authenticated && request.method == "POST" && request.path == "/identify" ->
                                     response(204, byteArrayOf(), "application/hap+json")
                                 else -> response(470, byteArrayOf(), "text/plain")
                             }
                             val current = cipher
-                            output.write(if (current == null) answer else current.encode(answer))
-                            output.flush()
+                            synchronized(writeLock) {
+                                output.write(if (current == null) answer else current.encode(answer))
+                                output.flush()
+                            }
                             // Pair-Verify M4 is plaintext; subsequent requests use authenticated framing.
                             if (current == null && verify.verifiedSession != null) {
                                 val session = requireNotNull(verify.verifiedSession)
@@ -153,6 +177,8 @@ class HapLanServer(private val context: Context, private val identity: HapIdenti
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "HAP connection closed: ${e.javaClass.simpleName}")
+            } finally {
+                motionSubscription?.close()
             }
         }
     }
@@ -168,7 +194,7 @@ class HapLanServer(private val context: Context, private val identity: HapIdenti
                 .put(characteristic("30", 5, identity.signingIdentity().identifier, JSONArray().put("pr")))
                 .put(characteristic("52", 6, "0.1.0", JSONArray().put("pr"))))
         val motion = JSONObject().put("iid", 7).put("type", "85")
-            .put("characteristics", JSONArray().put(characteristic("22", 8, false,
+            .put("characteristics", JSONArray().put(characteristic("22", 8, motionEvents.state(),
                 JSONArray().put("pr").put("ev"))))
         return JSONObject().put("accessories", JSONArray().put(JSONObject().put("aid", 1)
             .put("services", JSONArray().put(info).put(motion)))).toString().toByteArray()
