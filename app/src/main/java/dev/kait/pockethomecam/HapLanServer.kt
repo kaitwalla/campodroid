@@ -152,9 +152,10 @@ internal class HapLanServer(private val context: Context, private val identity: 
                                         identity.signingIdentity().identifier, motionEvents.state(),
                                         experimentalCamera, cameraStreams.streaming), "application/hap+json")
                                 authenticated && request.method == "GET" && request.path.startsWith("/characteristics?") -> {
-                                    val body = HapAccessoryDatabase.motionRead(request.path, motionEvents.state())
-                                        ?: if (experimentalCamera) HapCameraCharacteristics.read(
-                                            request.path, cameraStreams.setupReply, cameraStreams.streaming) else null
+                                    val body = if (experimentalCamera) HapCameraCharacteristics.read(
+                                        request.path, cameraStreams.setupReply, cameraStreams.streaming,
+                                        motionEvents.state()) else HapAccessoryDatabase.motionRead(
+                                            request.path, motionEvents.state())
                                     if (body == null) response(400, byteArrayOf(), "application/hap+json")
                                     else response(200, body, "application/hap+json")
                                 }
