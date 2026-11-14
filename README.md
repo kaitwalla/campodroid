@@ -40,3 +40,9 @@ Design document: [`DESIGN.md`](DESIGN.md).
 Pylo reference: https://github.com/tfausak/Pylo (0BSD), reviewed at commit `0e2ae33e1a370c0971d9a2a7c6d023633f71a5a1`.
 
 No Pylo code has been copied into this repository; the implementation is informed by its architecture and public protocol behavior.
+
+## CI and pull requests
+
+Every PR into `main` and every push to `main` runs [Android CI](.github/workflows/android-ci.yml): Android app compilation, the `hap-core` JVM tests, Android local JVM unit tests (motion state/prebuffer), and debug APK assembly. HTML test reports and a successful debug APK are uploaded as workflow artifacts. The workflow can also be run manually.
+
+To **prevent merging** a PR with failing tests, configure GitHub branch protection or a ruleset on `main` requiring the `Build and JVM unit tests` check. CI itself cannot enforce that setting. No device or Apple Home interoperability tests are part of CI yet.

@@ -1,7 +1,6 @@
 package dev.kait.pockethomecam
 
 import android.media.Image
-import kotlin.math.abs
 
 /** CPU-cheap Y-plane detector. Process one frame at a time on a dedicated HandlerThread. */
 class MotionAnalyzer(
@@ -11,9 +10,7 @@ class MotionAnalyzer(
     private val sampleWidth: Int = 64,
     private val sampleHeight: Int = 36,
 ) {
-    private var previous: ByteArray? = null
-    private var active = false
-    private var lastMovementAt = 0L
+    private val state = MotionState(threshold, changedFraction, clearAfterMs)
 
     /** Returns null when state is unchanged; true/false when motion starts/clears. */
     fun analyze(image: Image, nowMs: Long): Boolean? {
@@ -28,23 +25,6 @@ class MotionAnalyzer(
                 frame[index++] = bytes.get(y * plane.rowStride + x * plane.pixelStride)
             }
         }
-        val old = previous
-        previous = frame
-        if (old == null) return null
-        var changed = 0
-        for (i in frame.indices) {
-            if (abs((frame[i].toInt() and 255) - (old[i].toInt() and 255)) >= threshold) changed++
-        }
-        if (changed.toDouble() / frame.size >= changedFraction) {
-            lastMovementAt = nowMs
-            if (!active) {
-                active = true
-                return true
-            }
-        } else if (active && nowMs - lastMovementAt >= clearAfterMs) {
-            active = false
-            return false
-        }
-        return null
+        return state.process(frame, nowMs)
     }
 }
