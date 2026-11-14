@@ -17,12 +17,13 @@ Implemented:
 - Pure Kotlin SRP-6a server handshake (3072-bit group, SHA-512), with an independent client-side round-trip test. Still not exposed to the network.
 - HAP pair-setup M1/M3/M5 protocol state machine, SRP proof validation, encrypted identity exchange primitives, Ed25519 signature checks, and failure tests. **Not networked or device-tested.**
 - HAP pair verification using ephemeral X25519 and authenticated Ed25519 controller signatures; directional session keys and authenticated HAP frame transport, tested with fragmented TCP delivery.
+- Experimental Android Keystore-backed identity/controller store and LAN `_hap._tcp` listener. Only a placeholder motion-sensor accessory is advertised; camera characteristics and HKSV streaming are absent. This has **not** been exercised with Apple Home.
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:
 
 - **No video is transmitted or viewable** yet (encoded frames currently only enter a ring buffer).
-- No HAP accessory server, cryptographic pairing, discovery, SRTP, Apple Home live view, audio, object classification or HomeKit Secure Video.
+- HAP pairing/discovery now has an experimental Android integration. Apple Home compatibility is unverified; no SRTP, Apple Home camera live view, audio, object classification or HomeKit Secure Video.
 - No automatic camera restart after reboot; Android 15 restricts launching camera foreground services from `BOOT_COMPLETED`.
 
 ## Build
@@ -34,7 +35,7 @@ Install on a physical Android device, grant camera (and notification) permission
 ## Development priorities
 
 1. Test actual S24 capture output combination and handle unsupported FPS/capture configurations.
-2. Add Android Keystore-backed accessory/controller persistence and mDNS/TCP listener; connect the tested pair-setup and pair-verify exchanges to HTTP endpoints.
+2. Validate Android pairing/discovery on the S24 and harden HAP characteristics, concurrency, rate limiting, controller management, and transport error handling before adding RTP video.
 3. Expose a simple HomeKit motion sensor; then add camera stream negotiation and SRTP.
 4. Implement HKSV recording/HDS/fMP4 and prebuffer validation.
 5. Add TFLite inference, camera zones, settings UI, audio, recovery tests and thermal safeguards.
