@@ -6,4 +6,4 @@ dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
 rootProject.name = "PocketHomeCam"
-include(":app", ":hap-core")
+include(":app", ":hap-core", ":media-rtp")

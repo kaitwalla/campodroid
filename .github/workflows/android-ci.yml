@@ -30,7 +30,7 @@ jobs:
         with:
           gradle-version: '8.11.1'
       - name: Unit tests and debug build
-        run: gradle --no-daemon :hap-core:test :app:testDebugUnitTest :app:assembleDebug --stacktrace
+        run: gradle --no-daemon :hap-core:test :media-rtp:test :app:testDebugUnitTest :app:assembleDebug --stacktrace
       - name: Publish unit test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -39,6 +39,7 @@ jobs:
           path: |
             app/build/reports/tests/
             hap-core/build/reports/tests/
+            media-rtp/build/reports/tests/
           if-no-files-found: ignore
       - name: Publish debug APK
         if: success()
