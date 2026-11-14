@@ -10,6 +10,8 @@ import org.bouncycastle.crypto.params.KeyParameter
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
 import org.bouncycastle.crypto.signers.Ed25519Signer
+import org.bouncycastle.crypto.params.X25519PrivateKeyParameters
+import org.bouncycastle.crypto.params.X25519PublicKeyParameters
 import java.security.SecureRandom
 
 /** Self-contained HAP crypto. Uses Bouncy Castle's lightweight primitives on Android and JVM. */
@@ -59,4 +61,21 @@ object HapCrypto {
         Ed25519PrivateKeyParameters(seed, 0).generatePublicKey().encoded
 
     fun newSigningSeed(random: SecureRandom = SecureRandom()): ByteArray = ByteArray(32).also(random::nextBytes)
+
+    data class EphemeralKey(val privateKey: ByteArray, val publicKey: ByteArray)
+
+    fun generateX25519(random: SecureRandom = SecureRandom()): EphemeralKey {
+        val privateKey = X25519PrivateKeyParameters(random)
+        return EphemeralKey(privateKey.encoded, privateKey.generatePublicKey().encoded)
+    }
+
+    fun agreeX25519(privateKey: ByteArray, publicKey: ByteArray): ByteArray {
+        require(privateKey.size == 32 && publicKey.size == 32)
+        val secret = ByteArray(32)
+        X25519PrivateKeyParameters(privateKey, 0).generateSecret(
+            X25519PublicKeyParameters(publicKey, 0), secret, 0
+        )
+        require(secret.any { it != 0.toByte() }) { "Invalid all-zero X25519 shared secret" }
+        return secret
+    }
 }
