@@ -24,9 +24,14 @@ class CameraService : Service() {
             .build()
         startForeground(20, notification)
         try {
-            cameraEngine = CameraEngine(this) { motion -> Log.i(CameraEngine.TAG, "Motion active=$motion") }
+            val server = HapLanServer(this, HapIdentityRepository(this))
+            hapServer = server
+            cameraEngine = CameraEngine(this) { motion ->
+                Log.i(CameraEngine.TAG, "Motion active=$motion")
+                server.motionChanged(motion)
+            }
                 .also { it.start() }
-            hapServer = HapLanServer(this, HapIdentityRepository(this)).also { it.start() }
+            server.start()
         } catch (e: Exception) {
             Log.e(CameraEngine.TAG, "Failed to start camera", e)
             stopSelf()
