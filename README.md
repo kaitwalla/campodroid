@@ -31,7 +31,8 @@ Implemented:
 - HomeKit Setup Endpoints response serialization carries session ID, video crypto, accessory IPv4 ports and SSRCs with TLV8 tests, and is served from experimental camera characteristics.
 - A single-camera stream lifecycle state machine gates START/END to the current 16-byte session ID, rejects reconfigure and stale session commands, and is covered by JVM transition tests. Transport cleanup remains the Android integration's responsibility.
 - `HapCameraStreamCoordinator` allocates per-session UDP sockets, validates stream IDs, derives SRTP keys and starts/stops the bounded video sender; JVM loopback tests exercise setup/start/video/stop.
-- Opt-in experimental camera mode exposes Camera RTP Stream Management characteristics and routes authenticated Setup Endpoints / Selected Stream writes into the coordinator, forwarding live encoded H.264 access units to encrypted SRTP UDP transport. It is disabled by default and **has not been tested with Apple Home hardware**; audio capability is a declaration only, and RTCP/SRTCP, snapshot and HKSV remain unsupported.
+- Opt-in experimental camera mode exposes Camera RTP Stream Management characteristics and routes authenticated Setup Endpoints / Selected Stream writes into the coordinator, forwarding live encoded H.264 access units to encrypted SRTP UDP transport. It is disabled by default and **has not been tested with Apple Home hardware**; audio capability is a declaration only, and snapshots, inbound RTCP feedback and HKSV remain unsupported.
+- The opt-in sender now negotiates the actual RTP payload type, validates the selected format, reserves adjacent RTP/RTCP UDP ports and emits periodic authenticated RTCP Sender Reports. Inbound RTCP feedback and retransmission remain unsupported.
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:

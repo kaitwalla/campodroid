@@ -30,12 +30,12 @@ Record the *first failing stage*: discovery, pair-setup, pair-verify, accessory 
 4. With a Mac on the same LAN, `sudo tcpdump -ni en0 udp` can confirm packet destinations and rates if the interface is `en0`; **do not share packet payloads or cryptographic key material**. Reproduce with normal and locked screens.
 5. Stop the camera, turn the checkbox off, and restart to return to motion-only mode.
 
-Experimental video is **not expected to be reliable yet**. Audio, snapshots, RTCP/SRTCP feedback and HKSV are absent; Apple Home may reject the stream or fail to render it even when encrypted UDP packets are sent. An advertised AAC capability is metadata only.
+Experimental video is **not expected to be reliable yet**. The app sends periodic authenticated RTCP Sender Reports but does not handle inbound RTCP feedback. Audio, snapshots and HKSV are absent; Apple Home may reject the stream or fail to render it even when encrypted UDP packets are sent. An advertised AAC capability is metadata only.
 
 ## Known gaps and expected failures
 
 - Apple Home interoperability has **not yet been validated**. Discovery or pairing may fail; that is a useful test result.
-- The opt-in camera path now has characteristic negotiation and H.264/SRTP UDP sending, **but has not rendered video in Apple Home**; snapshot, RTCP/SRTCP and interoperability work remains.
+- The opt-in camera path has characteristic negotiation, H.264/SRTP UDP and outbound SRTCP Sender Reports, **but has not rendered video in Apple Home**; snapshots, inbound feedback and interoperability work remain.
 - **No HKSV**: no HAP Data Stream, recording management, fragmented MP4, or Home timeline clips.
 - No restart-on-boot; relaunch the foreground camera service manually after a reboot.
 - Pairing status refreshes when the Android activity resumes; it does not update live while pairing completes.
