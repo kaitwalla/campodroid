@@ -24,7 +24,10 @@ class HapCameraCharacteristicsTest {
         assertTrue(Base64.getDecoder().decode(chars.getJSONObject(0).getString("value")).isNotEmpty())
         assertArrayEquals(byteArrayOf(7), Base64.getDecoder().decode(chars.getJSONObject(1).getString("value")))
         assertArrayEquals(byteArrayOf(1, 1, 1), Base64.getDecoder().decode(chars.getJSONObject(2).getString("value")))
-        assertNull(HapCameraCharacteristics.read("/characteristics?id=1.21,1.8", null, false))
+        val mixed = JSONObject(String(requireNotNull(HapCameraCharacteristics.read(
+            "/characteristics?id=1.21,1.8", null, false, motion = true))))
+        assertTrue(mixed.getJSONArray("characteristics").getJSONObject(1).getBoolean("value"))
+        assertNull(HapCameraCharacteristics.read("/characteristics?id=1.21,1.9", null, false))
         assertNull(HapCameraCharacteristics.read("/characteristics?id=1.24,1.24", null, false))
     }
 }
