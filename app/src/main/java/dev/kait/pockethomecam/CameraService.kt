@@ -24,7 +24,9 @@ class CameraService : Service() {
             .build()
         startForeground(20, notification)
         try {
-            val server = HapLanServer(this, HapIdentityRepository(this))
+            val cameraEnabled = getSharedPreferences("camera", MODE_PRIVATE)
+                .getBoolean("experimental_homekit_video", false)
+            val server = HapLanServer(this, HapIdentityRepository(this), experimentalCamera = cameraEnabled)
             hapServer = server
             cameraEngine = CameraEngine(this,
                 onMotion = { motion ->
@@ -32,6 +34,7 @@ class CameraService : Service() {
                     server.motionChanged(motion)
                 },
                 onAccessUnit = { sample ->
+                    server.video(sample)
                     if (sample.keyframe) Log.d(CameraEngine.TAG,
                         "H.264 keyframe: ${sample.nals.size} NALs, timestamp=${sample.timestampUs}us")
                 })

@@ -15,7 +15,9 @@ import kotlin.concurrent.thread
 
 /** Minimal local HAP transport. No camera stream is advertised until implemented. */
 internal class HapLanServer(private val context: Context, private val identity: HapIdentityRepository,
-                   private val motionEvents: MotionEventHub = MotionEventHub()) {
+                   private val motionEvents: MotionEventHub = MotionEventHub(),
+                   private val experimentalCamera: Boolean = false) {
+    private val cameraStreams = HapCameraStreamCoordinator()
     private var socket: ServerSocket? = null
     private val nsd = context.getSystemService(NsdManager::class.java)
     private var registration: NsdManager.RegistrationListener? = null
@@ -23,6 +25,7 @@ internal class HapLanServer(private val context: Context, private val identity: 
     private val pairingThrottle = dev.kait.hap.PairingThrottle()
 
     fun motionChanged(active: Boolean) = motionEvents.update(active)
+    fun video(sample: dev.kait.media.H264AccessUnit) { if (experimentalCamera) cameraStreams.onVideo(sample) }
 
     fun start() {
         check(!running)
@@ -46,6 +49,7 @@ internal class HapLanServer(private val context: Context, private val identity: 
 
     fun stop() {
         running = false
+        cameraStreams.close()
         socket?.close()
         socket = null
         registration?.let { runCatching { nsd.unregisterService(it) } }
@@ -69,7 +73,7 @@ internal class HapLanServer(private val context: Context, private val identity: 
             setAttribute("pv", "1.1")
             setAttribute("s#", "1")
             setAttribute("sf", if (identity.isPaired()) "0" else "1")
-            setAttribute("ci", "10") // Sensor category until camera service is implemented.
+            setAttribute("ci", if (experimentalCamera) "17" else "10")
             setAttribute("sh", android.util.Base64.encodeToString(hash, android.util.Base64.NO_WRAP))
         }
         val listener = object : NsdManager.RegistrationListener {
@@ -145,15 +149,31 @@ internal class HapLanServer(private val context: Context, private val identity: 
                                     response(200, verify.handle(request.body), "application/pairing+tlv8")
                                 authenticated && request.method == "GET" && request.path == "/accessories" ->
                                     response(200, HapAccessoryDatabase.accessories(
-                                        identity.signingIdentity().identifier, motionEvents.state()), "application/hap+json")
+                                        identity.signingIdentity().identifier, motionEvents.state(),
+                                        experimentalCamera, cameraStreams.streaming), "application/hap+json")
                                 authenticated && request.method == "GET" && request.path.startsWith("/characteristics?") -> {
                                     val body = HapAccessoryDatabase.motionRead(request.path, motionEvents.state())
+                                        ?: if (experimentalCamera) HapCameraCharacteristics.read(
+                                            request.path, cameraStreams.setupReply, cameraStreams.streaming) else null
                                     if (body == null) response(400, byteArrayOf(), "application/hap+json")
                                     else response(200, body, "application/hap+json")
                                 }
                                 authenticated && request.method == "PUT" && request.path == "/characteristics" -> {
-                                    val enabled = HapMotionProtocol.subscriptionValue(request.body)
-                                    if (enabled == null) response(400, byteArrayOf(), "application/hap+json")
+                                    val cameraWrite = if (experimentalCamera)
+                                        HapCameraCharacteristics.parseWrite(request.body) else null
+                                    val enabled = if (cameraWrite == null)
+                                        HapMotionProtocol.subscriptionValue(request.body) else null
+                                    if (cameraWrite != null) {
+                                        val accepted = runCatching {
+                                            when (cameraWrite.iid) {
+                                                24 -> { cameraStreams.setup(cameraWrite.payload,
+                                                    conn.localAddress.hostAddress ?: "127.0.0.1"); true }
+                                                25 -> cameraStreams.select(cameraWrite.payload)
+                                                else -> false
+                                            }
+                                        }.getOrDefault(false)
+                                        response(if (accepted) 204 else 400, byteArrayOf(), "application/hap+json")
+                                    } else if (enabled == null) response(400, byteArrayOf(), "application/hap+json")
                                     else {
                                         motionSubscription?.close()
                                         motionSubscription = if (enabled) motionEvents.subscribe { active ->

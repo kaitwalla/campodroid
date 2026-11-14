@@ -19,6 +19,9 @@ internal class HapCameraStreamCoordinator : Closeable {
     private val random = SecureRandom()
     private var pending: Pending? = null
     @Volatile private var sender: SrtpUdpVideoSender? = null
+    @Volatile var setupReply: ByteArray? = null
+        private set
+    val streaming: Boolean get() = sender != null
 
     @Synchronized fun setup(request: ByteArray, localAddress: String): ByteArray {
         val parsed = CameraStreamProtocol.parseSetupEndpoints(request)
@@ -32,6 +35,7 @@ internal class HapCameraStreamCoordinator : Closeable {
             clear()
             pending = Pending(parsed, video, audio, ssrc)
             state.prepare(parsed.sessionId)
+            setupReply = response.copyOf()
             response
         } catch (e: Exception) {
             video.close(); audio.close(); throw e
@@ -64,6 +68,7 @@ internal class HapCameraStreamCoordinator : Closeable {
 
     @Synchronized private fun clear() {
         sender?.close(); sender = null
+        setupReply = null
         pending?.videoSocket?.close()
         pending?.audioSocket?.close()
         pending = null
