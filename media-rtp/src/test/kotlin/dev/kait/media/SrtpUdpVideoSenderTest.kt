@@ -8,6 +8,40 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SrtpUdpVideoSenderTest {
+    @Test fun emitsEncryptedRtcpSenderReportToAdjacentPort() {
+        var receivers: Pair<DatagramSocket, DatagramSocket>? = null
+        repeat(64) {
+            if (receivers != null) return@repeat
+            val video = DatagramSocket(0)
+            try {
+                if (video.localPort < 65535) receivers = video to DatagramSocket(video.localPort + 1)
+                else video.close()
+            } catch (_: java.net.BindException) { video.close() }
+        }
+        val (video, rtcp) = requireNotNull(receivers)
+        video.use {
+            rtcp.use {
+                rtcp.soTimeout = 3000
+                val masterKey = ByteArray(16)
+                val masterSalt = ByteArray(14)
+                val session = SrtpVideoSession(5, SrtpKeyDerivation.derive(masterKey, masterSalt))
+                SrtpUdpVideoSender("127.0.0.1", video.localPort, session,
+                    rtcpSocket = DatagramSocket(0),
+                    rtcpProtector = SrtcpOutboundProtector(5,
+                        SrtpKeyDerivation.deriveRtcp(masterKey, masterSalt)),
+                    ssrc = 5, reportIntervalMillis = 150).use { sender ->
+                    assertTrue(sender.offer(H264AccessUnit(1_000_000, true,
+                        listOf(byteArrayOf(0x65, 1, 2, 3)))))
+                    val report = DatagramPacket(ByteArray(1024), 1024)
+                    rtcp.receive(report)
+                    assertEquals(42, report.length)
+                    assertEquals(200, report.data[1].toInt() and 255)
+                    assertEquals(0x80, report.data[28].toInt() and 255)
+                }
+            }
+        }
+    }
+
     @Test fun sendsOnlyProtectedVideoDatagramsToLoopback() {
         DatagramSocket(0).use { receiver ->
             receiver.soTimeout = 3000
