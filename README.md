@@ -13,7 +13,7 @@ Implemented:
 - Concurrent low-resolution YUV frame analysis with sampled grayscale frame-difference motion and hysteresis.
 - Bounded, memory-only encoded frame ring buffer for future recording prebuffer.
 - Pure Kotlin HAP TLV8 codec with JVM unit tests.
-- HomeKit setup-code/QR-URI primitives and pairing attempt throttle, with JVM unit tests. These are **not** exposed in the app until authenticated HAP pairing works.
+- HomeKit setup-code/QR-URI primitives and pairing attempt throttle, with JVM unit tests. The app now displays the manual setup code and pairing status; QR display is deferred.
 - Pure Kotlin SRP-6a server handshake (3072-bit group, SHA-512), with an independent client-side round-trip test. Still not exposed to the network.
 - HAP pair-setup M1/M3/M5 protocol state machine, SRP proof validation, encrypted identity exchange primitives, Ed25519 signature checks, and failure tests. **Not networked or device-tested.**
 - HAP pair verification using ephemeral X25519 and authenticated Ed25519 controller signatures; directional session keys and authenticated HAP frame transport, tested with fragmented TCP delivery.
@@ -30,7 +30,7 @@ Not implemented:
 
 Requires Android Studio with JDK 17 and Android SDK 35, plus Gradle 8.11.1. Open this folder as a project and let Android Studio sync the Gradle files. No Gradle wrapper is bundled in this revision.
 
-Install on a physical Android device, grant camera (and notification) permission, press **Start camera**, then lock the screen. Inspect `adb logcat -s PocketHomeCam` for motion transitions and camera failures. Stop the service from the app. The camera's operating status is not currently reflected back to the activity, so the button's text is optimistic.
+Install on a physical Android device, grant camera (and notification) permission, press **Start camera**, then lock the screen. For experimental Home pairing, open Apple Home → Add Accessory → More Options, select CamPodroid and enter the setup code shown in the Android app. Pairing has **not** been validated against a real Apple Home controller. Inspect `adb logcat -s PocketHomeCam CamPodroidHAP` for motion transitions and pairing/server failures. Stop the service from the app. The camera's operating status is not currently reflected back to the activity, so the button's text is optimistic.
 
 ## Development priorities
 
