@@ -66,14 +66,14 @@ internal class HapLanServer(private val context: Context, private val identity: 
             serviceName = "CamPodroid"
             serviceType = "_hap._tcp."
             setPort(port)
-            setAttribute("c#", "1")
+            setAttribute("c#", HapDiscoveryMetadata.configurationNumber(experimentalCamera))
             setAttribute("ff", "0")
             setAttribute("id", device.identifier)
             setAttribute("md", "CamPodroid")
             setAttribute("pv", "1.1")
             setAttribute("s#", "1")
             setAttribute("sf", if (identity.isPaired()) "0" else "1")
-            setAttribute("ci", if (experimentalCamera) "17" else "10")
+            setAttribute("ci", HapDiscoveryMetadata.category(experimentalCamera))
             setAttribute("sh", android.util.Base64.encodeToString(hash, android.util.Base64.NO_WRAP))
         }
         val listener = object : NsdManager.RegistrationListener {
