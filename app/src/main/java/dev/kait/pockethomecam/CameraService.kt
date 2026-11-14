@@ -10,6 +10,7 @@ import android.util.Log
 
 class CameraService : Service() {
     private var cameraEngine: CameraEngine? = null
+    private var hapServer: HapLanServer? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -25,6 +26,7 @@ class CameraService : Service() {
         try {
             cameraEngine = CameraEngine(this) { motion -> Log.i(CameraEngine.TAG, "Motion active=$motion") }
                 .also { it.start() }
+            hapServer = HapLanServer(this, HapIdentityRepository(this)).also { it.start() }
         } catch (e: Exception) {
             Log.e(CameraEngine.TAG, "Failed to start camera", e)
             stopSelf()
@@ -32,6 +34,6 @@ class CameraService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_NOT_STICKY
-    override fun onDestroy() { cameraEngine?.stop(); super.onDestroy() }
+    override fun onDestroy() { hapServer?.stop(); cameraEngine?.stop(); super.onDestroy() }
     override fun onBind(intent: Intent?): IBinder? = null
 }
