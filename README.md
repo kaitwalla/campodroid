@@ -24,6 +24,7 @@ Implemented:
 - H.264 sample assembly caches SPS/PPS from encoder config buffers and includes them when constructing keyframe access units, with JVM tests for late-joining viewers and encoder reset. The live capture callback and SRTP sender are not connected yet.
 - MediaCodec output now passes through the sample assembler on the encoder thread and exposes an access-unit callback (currently logging keyframes for hardware diagnosis). No RTP packets are sent over the network.
 - SRTP AES-CM 128-bit session key derivation (zero derivation rate) is implemented in `:media-rtp` and tested against RFC 3711 Appendix B.3 known-answer vectors. This **is not** an SRTP sender; packet encryption, authentication, rollover, RTCP and replay handling remain unimplemented.
+- Experimental outbound `AES_CM_128_HMAC_SHA1_80` SRTP protection now encrypts/authenticates strictly ordered basic RTP packets, with RFC 3711 AES-CM vector and sequence-rollover tests. It intentionally rejects extension/CSRC formats, gaps and replay; it has no HAP negotiation, network transport or SRTCP yet.
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:
