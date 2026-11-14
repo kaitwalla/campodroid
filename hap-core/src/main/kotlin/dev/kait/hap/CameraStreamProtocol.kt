@@ -37,7 +37,7 @@ object CameraStreamProtocol {
     /** AAC-ELD, mono, 16kHz; declaration only until an audio sender exists. */
     fun supportedAudio(): ByteArray {
         val parameters = Tlv8.encode(listOf(one(1, byteArrayOf(1)),
-            one(2, byteArrayOf(0)), one(3, byteArrayOf(1)), one(4, byteArrayOf(0))))
+            one(2, byteArrayOf(0)), one(3, byteArrayOf(1))))
         val codec = Tlv8.encode(listOf(one(1, byteArrayOf(2)), one(2, parameters)))
         return Tlv8.encode(listOf(one(1, codec), one(2, byteArrayOf(0))))
     }
@@ -47,7 +47,17 @@ object CameraStreamProtocol {
 
     data class Crypto(val key: ByteArray, val salt: ByteArray)
     data class EndpointRequest(val sessionId: ByteArray, val address: String,
-                               val videoPort: Int, val audioPort: Int, val video: Crypto)
+                               val videoPort: Int, val audioPort: Int, val video: Crypto,
+                               val audio: Crypto)
+
+    private fun parseCrypto(value: ByteArray): Crypto {
+        val crypto = unique(value)
+        require(crypto[1]?.contentEquals(byteArrayOf(0)) == true)
+        val key = requireNotNull(crypto[2])
+        val salt = requireNotNull(crypto[3])
+        require(key.size == 16 && salt.size == 14)
+        return Crypto(key.copyOf(), salt.copyOf())
+    }
 
     fun parseSetupEndpoints(request: ByteArray): EndpointRequest {
         val root = unique(request)
@@ -63,13 +73,8 @@ object CameraStreamProtocol {
         val videoPort = read16(requireNotNull(address[3]))
         val audioPort = read16(requireNotNull(address[4]))
         require(videoPort > 0 && audioPort > 0)
-        val crypto = unique(requireNotNull(root[4]))
-        require(crypto[1]?.contentEquals(byteArrayOf(0)) == true)
-        val key = requireNotNull(crypto[2])
-        val salt = requireNotNull(crypto[3])
-        require(key.size == 16 && salt.size == 14)
         return EndpointRequest(session.copyOf(), host, videoPort, audioPort,
-            Crypto(key.copyOf(), salt.copyOf()))
+            parseCrypto(requireNotNull(root[4])), parseCrypto(requireNotNull(root[5])))
     }
 
     /** Construct the accessory Setup Endpoints reply after reserving UDP ports. */
@@ -83,9 +88,12 @@ object CameraStreamProtocol {
             one(3, u16(videoPort)), one(4, u16(audioPort))))
         val crypto = Tlv8.encode(listOf(one(1, byteArrayOf(0)),
             one(2, request.video.key), one(3, request.video.salt)))
+        val audioCrypto = Tlv8.encode(listOf(one(1, byteArrayOf(0)),
+            one(2, request.audio.key), one(3, request.audio.salt)))
         fun u32(value: Int) = ByteArray(4) { i -> (value ushr (i * 8)).toByte() }
         return Tlv8.encode(listOf(one(1, request.sessionId), one(2, byteArrayOf(0)),
-            one(3, address), one(4, crypto), one(6, u32(videoSsrc)), one(7, u32(audioSsrc))))
+            one(3, address), one(4, crypto), one(5, audioCrypto),
+            one(6, u32(videoSsrc)), one(7, u32(audioSsrc))))
     }
 
     data class SelectedStream(val sessionId: ByteArray, val command: Command) {
