@@ -30,6 +30,7 @@ Implemented:
 - Bounded, asynchronous UDP transmission of encrypted SRTP packets exists as an isolated `:media-rtp` component with a loopback datagram test. It is **not yet wired into the Android HAP server**; no camera network streaming is enabled until authenticated endpoint setup, lifecycle and RTCP are integrated.
 - HomeKit Setup Endpoints response serialization now carries the negotiated session ID, video crypto, accessory IPv4 ports and SSRCs, with nested TLV8 round-trip tests. The response is not served until a stream lifecycle manager is in place.
 - A single-camera stream lifecycle state machine gates START/END to the current 16-byte session ID, rejects reconfigure and stale session commands, and is covered by JVM transition tests. Transport cleanup remains the Android integration's responsibility.
+- Experimental `HapCameraStreamCoordinator` allocates per-session UDP sockets, validates stream IDs, derives SRTP keys and starts/stops the bounded video sender; JVM loopback tests exercise the complete setup/start/video/stop path. The live app does not expose camera characteristics or invoke this coordinator yet.
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:
