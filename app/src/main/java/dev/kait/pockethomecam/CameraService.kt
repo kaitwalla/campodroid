@@ -26,10 +26,15 @@ class CameraService : Service() {
         try {
             val server = HapLanServer(this, HapIdentityRepository(this))
             hapServer = server
-            cameraEngine = CameraEngine(this) { motion ->
-                Log.i(CameraEngine.TAG, "Motion active=$motion")
-                server.motionChanged(motion)
-            }
+            cameraEngine = CameraEngine(this,
+                onMotion = { motion ->
+                    Log.i(CameraEngine.TAG, "Motion active=$motion")
+                    server.motionChanged(motion)
+                },
+                onAccessUnit = { sample ->
+                    if (sample.keyframe) Log.d(CameraEngine.TAG,
+                        "H.264 keyframe: ${sample.nals.size} NALs, timestamp=${sample.timestampUs}us")
+                })
                 .also { it.start() }
             server.start()
         } catch (e: Exception) {
