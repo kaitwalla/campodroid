@@ -14,6 +14,7 @@ android {
         versionName = "0.1.0-dev"
     }
     buildFeatures { viewBinding = true }
+    packaging { resources.excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF" }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
