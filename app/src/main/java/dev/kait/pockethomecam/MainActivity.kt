@@ -11,16 +11,31 @@ import android.widget.TextView
 
 class MainActivity : Activity() {
     private lateinit var status: TextView
+    private lateinit var pairingStatus: TextView
+    private lateinit var pairingCode: TextView
+    private lateinit var pairingInstructions: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         status = findViewById(R.id.status)
+        pairingStatus = findViewById(R.id.pairing_status)
+        pairingCode = findViewById(R.id.pairing_code)
+        pairingInstructions = findViewById(R.id.pairing_instructions)
         findViewById<Button>(R.id.start).setOnClickListener { startIfAllowed() }
         findViewById<Button>(R.id.stop).setOnClickListener {
             stopService(Intent(this, CameraService::class.java))
             status.text = "Camera stopped"
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val repository = HapIdentityRepository(this)
+        val presentation = pairingPresentation(repository.setupIdentity().code, repository.isPaired())
+        pairingStatus.text = presentation.status
+        pairingCode.text = presentation.code
+        pairingInstructions.text = presentation.instructions
     }
 
     private fun startIfAllowed() {

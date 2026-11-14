@@ -3,14 +3,20 @@
     android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal"
     android:layout_width="match_parent" android:layout_height="match_parent">
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Pocket Home Cam" android:textSize="26sp" android:textStyle="bold" />
+        android:text="CamPodroid" android:textSize="26sp" android:textStyle="bold" />
     <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="16dp" android:text="Camera stopped" android:textSize="16sp" />
     <Button android:id="@+id/start" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="24dp" android:text="Start camera" />
     <Button android:id="@+id/stop" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="Stop camera" />
+    <TextView android:id="@+id/pairing_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="24dp" android:text="Loading pairing status…" android:textStyle="bold" />
+    <TextView android:id="@+id/pairing_code" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:textSize="28sp" android:textIsSelectable="true" />
+    <TextView android:id="@+id/pairing_instructions" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Developer preview: local hardware capture and motion analysis only. HomeKit pairing and Secure Video are not implemented yet." />
+        android:text="Developer preview: HomeKit pairing is experimental and not yet tested on a phone. No live video or Secure Video." />
 </LinearLayout>
