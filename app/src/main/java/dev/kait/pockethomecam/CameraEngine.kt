@@ -17,12 +17,16 @@ import android.os.HandlerThread
 import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
+import dev.kait.media.H264AccessUnit
+import dev.kait.media.H264SampleAssembler
 
 /** Native hardware capture and encoding; no network endpoint is exposed. */
-class CameraEngine(private val context: Context, private val onMotion: (Boolean) -> Unit) {
+class CameraEngine(private val context: Context, private val onMotion: (Boolean) -> Unit,
+                   private val onAccessUnit: (H264AccessUnit) -> Unit = {}) {
     private val thread = HandlerThread("pocket-camera").apply { start() }
     private val handler = Handler(thread.looper)
     private val analyzer = MotionAnalyzer()
+    private val sampleAssembler = H264SampleAssembler()
     val prebuffer = EncodedRingBuffer()
     private var camera: CameraDevice? = null
     private var session: CameraCaptureSession? = null
@@ -118,6 +122,11 @@ class CameraEngine(private val context: Context, private val onMotion: (Boolean)
                 val bytes = ByteArray(info.size)
                 output.get(bytes)
                 prebuffer.append(EncodedFrame(info.presentationTimeUs, info.flags, bytes))
+                // All MediaCodec output is processed on the camera HandlerThread.
+                val sample = sampleAssembler.accept(bytes, info.presentationTimeUs,
+                    codecConfig = info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0,
+                    keyframe = info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME != 0)
+                if (sample != null) onAccessUnit(sample)
             } finally { codec.releaseOutputBuffer(index, false) }
         }
     }
