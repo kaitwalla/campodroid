@@ -19,6 +19,7 @@ Implemented:
 - HAP pair verification using ephemeral X25519 and authenticated Ed25519 controller signatures; directional session keys and authenticated HAP frame transport, tested with fragmented TCP delivery.
 - Experimental Android Keystore-backed identity/controller store and LAN `_hap._tcp` listener. Only a placeholder motion-sensor accessory is advertised; camera characteristics and HKSV streaming are absent. This has **not** been exercised with Apple Home.
 - Motion-analysis transitions are wired to HAP MotionDetected (`aid=1`, `iid=8`) with authenticated `PUT /characteristics` event subscriptions. This notification path is unit-tested but not Apple Home interoperability-tested.
+- HAP accessory metadata now declares formats and the Identify characteristic, and authenticated `GET /characteristics?id=1.8` reports current motion state. Unsupported ID requests are rejected; full multi-characteristic HAP query handling is still pending.
 - Screen can be locked after **user-initiated** start; exact behavior requires on-device validation.
 
 Not implemented:

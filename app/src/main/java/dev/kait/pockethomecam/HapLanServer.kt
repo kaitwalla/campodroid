@@ -7,8 +7,6 @@ import android.util.Log
 import dev.kait.hap.HapFrameCipher
 import dev.kait.hap.PairSetupExchange
 import dev.kait.hap.PairVerifyExchange
-import org.json.JSONArray
-import org.json.JSONObject
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
@@ -104,7 +102,13 @@ internal class HapLanServer(private val context: Context, private val identity: 
     }
 
     private fun response(code: Int, body: ByteArray, contentType: String): ByteArray {
-        val status = if (code == 200) "OK" else "Error"
+        val status = when (code) {
+            200 -> "OK"
+            204 -> "No Content"
+            400 -> "Bad Request"
+            470 -> "Connection Authorization Required"
+            else -> "Error"
+        }
         return ("HTTP/1.1 $code $status\r\nContent-Type: $contentType\r\nContent-Length: ${body.size}\r\nConnection: keep-alive\r\n\r\n")
             .toByteArray(Charsets.US_ASCII) + body
     }
@@ -140,7 +144,13 @@ internal class HapLanServer(private val context: Context, private val identity: 
                                 request.method == "POST" && request.path == "/pair-verify" ->
                                     response(200, verify.handle(request.body), "application/pairing+tlv8")
                                 authenticated && request.method == "GET" && request.path == "/accessories" ->
-                                    response(200, accessories(), "application/hap+json")
+                                    response(200, HapAccessoryDatabase.accessories(
+                                        identity.signingIdentity().identifier, motionEvents.state()), "application/hap+json")
+                                authenticated && request.method == "GET" && request.path.startsWith("/characteristics?") -> {
+                                    val body = HapAccessoryDatabase.motionRead(request.path, motionEvents.state())
+                                    if (body == null) response(400, byteArrayOf(), "application/hap+json")
+                                    else response(200, body, "application/hap+json")
+                                }
                                 authenticated && request.method == "PUT" && request.path == "/characteristics" -> {
                                     val enabled = HapMotionProtocol.subscriptionValue(request.body)
                                     if (enabled == null) response(400, byteArrayOf(), "application/hap+json")
@@ -181,23 +191,6 @@ internal class HapLanServer(private val context: Context, private val identity: 
                 motionSubscription?.close()
             }
         }
-    }
-
-    private fun accessories(): ByteArray {
-        fun characteristic(type: String, iid: Int, value: Any, perms: JSONArray): JSONObject =
-            JSONObject().put("type", type).put("iid", iid).put("value", value).put("perms", perms)
-        val info = JSONObject().put("iid", 1).put("type", "3E")
-            .put("characteristics", JSONArray()
-                .put(characteristic("23", 2, "CamPodroid", JSONArray().put("pr")))
-                .put(characteristic("20", 3, "CamPodroid", JSONArray().put("pr")))
-                .put(characteristic("21", 4, "AndroidPhone", JSONArray().put("pr")))
-                .put(characteristic("30", 5, identity.signingIdentity().identifier, JSONArray().put("pr")))
-                .put(characteristic("52", 6, "0.1.0", JSONArray().put("pr"))))
-        val motion = JSONObject().put("iid", 7).put("type", "85")
-            .put("characteristics", JSONArray().put(characteristic("22", 8, motionEvents.state(),
-                JSONArray().put("pr").put("ev"))))
-        return JSONObject().put("accessories", JSONArray().put(JSONObject().put("aid", 1)
-            .put("services", JSONArray().put(info).put(motion)))).toString().toByteArray()
     }
 
     companion object { private const val TAG = "CamPodroidHAP" }
